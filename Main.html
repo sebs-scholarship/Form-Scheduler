@@ -1,0 +1,195 @@
+<html lang="en">
+<head>
+  <base target="_top">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+</head>
+<body>
+  <div id="main" style="width: 600px"> 
+    <div class="section">
+      <div class="switch">
+        <label>
+          <input type="checkbox" id="open" onclick="openChecked()">
+          <span class="lever"></span>
+          Automatically Open
+        </label>
+      </div>
+      <br>
+      <div class="input-field col s6">
+        <label for="open_date">Open Date</label>
+        <input type="text" class="datepicker" id="open_date" disabled>
+      </div>
+      <div class="input-field col s6">
+        <label for="open_time">Open Time</label>
+        <input type="text" class="timepicker" id="open_time" disabled>
+      </div>
+    </div>
+    <div class="section">
+      <div class="switch" style="margin-bottom: 5px;">
+        <label>
+          <input type="checkbox" id="close" onclick="closeChecked()">
+          <span class="lever"></span>
+          Automatically Close
+        </label>
+      </div>
+      <br>
+      <div class="input-field col s6">
+        <label for="close_date">Close Date</label>
+        <input type="text" class="datepicker" id="close_date" disabled>
+      </div>
+      <div class="input-field col s6">
+        <label for="close_time">Close Time</label>
+        <input type="text" class="timepicker" id="close_time" disabled>
+      </div>
+    </div>
+    <div class="section">
+      <div class="switch">
+        <label>
+          <input type="checkbox" id="email">
+          <span class="lever"></span>
+          Email me when the form automatically opens or closes
+        </label>
+      </div>
+    </div>
+    <br>
+    <div class="section sbs right">
+      <button class="waves-effect waves-light btn-flat grey lighten-4" onclick="onSuccess()">Cancel</button>
+      <button class="waves-effect waves-light btn-flat teal lighten-1 white-text" id="save" onclick="submit()">Save</button>
+    </div>
+  </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment.min.js"></script>
+  <script>
+  const html = `
+<div class="section">
+  <p style="color: red">This form has already been scheduled by @. Please contact them to edit or cancel these settings.<p>
+</div>
+`
+  document.addEventListener('DOMContentLoaded', function() {
+    var dateElems = document.querySelectorAll('.datepicker');
+    var dateInstances = M.Datepicker.init(dateElems, {format:"yyyy-mm-dd"});
+    var timeElems = document.querySelectorAll('.timepicker');
+    var timeInstances = M.Timepicker.init(timeElems);
+  
+    google.script.run.withSuccessHandler(init).getScheduleSettings();
+  });
+  
+  function init(settings) {
+    var locked = settings["user"] && settings["user"] != settings["currUser"];
+    
+    if (locked) {
+      document.getElementById("open").disabled = true;
+      document.getElementById("close").disabled = true;
+      document.getElementById("save").disabled = true;
+      document.getElementById("email").disabled = true;
+      
+      document.getElementById("main").insertAdjacentHTML('afterbegin', html.replace("@", settings["user"]));
+    }
+  
+    var openString = settings["openTime"];
+    if (openString) {
+      var openTime = moment(openString);
+      document.getElementById("open").checked = true;
+      document.getElementById("open_time").value = openTime.format("hh:mm a");
+      document.getElementById("open_date").value = openTime.format("YYYY-MM-DD");
+      
+      if (!locked) {
+        document.getElementById("open_time").disabled = false;
+        document.getElementById("open_date").disabled = false;
+      }
+    }
+  
+    var closeString = settings["closeTime"];
+    if (closeString) {
+      var closeTime = moment(closeString);
+      document.getElementById("close").checked = true;
+      document.getElementById("close_time").value = closeTime.format("hh:mm a");
+      document.getElementById("close_date").value = closeTime.format("YYYY-MM-DD");
+      
+      if (!locked) {
+        document.getElementById("close_time").disabled = false;
+        document.getElementById("close_date").disabled = false;
+      }
+    }
+  
+    var emailNotif = settings["emailNotif"];
+    if (emailNotif) {
+      document.getElementById("email").checked = true;
+    }
+  
+    M.updateTextFields();
+  }
+  
+  function submit() {
+    var openStr;
+    var closeStr;
+    
+    if (document.getElementById("open").checked) {
+      var openTimeStr = document.getElementById("open_time").value;
+      var openDateStr = document.getElementById("open_date").value;
+  
+      if (openDateStr.length > 0 && openTimeStr.length > 0) {
+        openStr = openDateStr + " " + openTimeStr;
+  
+        if (!moment(openStr, "YYYY-MM-DD hh:mm a").isValid()) {
+          alert("Open date is not in the YYYY-MM-DD hh:mm a format");
+          return;
+        }
+      } else {
+        alert("Open date and time fields are required!");
+        return;
+      }
+    }
+  
+    if (document.getElementById("close").checked) {
+      var closeTimeStr = document.getElementById("close_time").value;
+      var closeDateStr = document.getElementById("close_date").value;
+  
+      if (closeDateStr.length > 0 && closeTimeStr.length > 0) {
+        closeStr = closeDateStr + " " + closeTimeStr;
+        
+        if (!moment(closeStr, "YYYY-MM-DD hh:mm a").isValid()) {
+          alert("Close date is not in the YYYY-MM-DD hh:mm a format");
+          return;
+        }
+      } else {
+        alert("Close date and time fields are required!");
+        return;
+      }
+    }
+    
+    var emailNotif = document.getElementById("email").checked;
+  
+    google.script.run.withFailureHandler(onFailure).withSuccessHandler(onSuccess).submitSchedule(openStr, closeStr, emailNotif);
+  }
+  
+  function openChecked() {
+    if (document.getElementById("open").checked) {
+      document.getElementById("open_date").disabled = false;
+      document.getElementById("open_time").disabled = false;
+    } else {
+      document.getElementById("open_date").disabled = true;
+      document.getElementById("open_time").disabled = true;
+    }
+  }
+  
+  function closeChecked() {
+    if (document.getElementById("close").checked) {
+      document.getElementById("close_date").disabled = false;
+      document.getElementById("close_time").disabled = false;
+    } else {
+      document.getElementById("close_date").disabled = true;
+      document.getElementById("close_time").disabled = true;
+    }
+  }
+  
+  function onFailure(msg) {
+    alert(msg.toString());
+  }
+  
+  function onSuccess(msg) {
+    google.script.host.close();
+  }
+</script>
+</body>
+</html>
