@@ -142,13 +142,10 @@ function setCloseTrigger_(offset) {
 function clearTriggers_() {
   var triggers = ScriptApp.getUserTriggers(FormApp.getActiveForm());
 
-  var i = 0
-  while (i < triggers.length) {
+  for (var i = 0; i < triggers.length; i++) {
     if (triggers[i].getEventType() === ScriptApp.EventType.CLOCK) {
       ScriptApp.deleteTrigger(triggers[i]);
       console.log("Deleted trigger");
-    } else {
-       i++;
     }
   }
 }
