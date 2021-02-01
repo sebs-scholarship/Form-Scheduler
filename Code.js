@@ -38,9 +38,23 @@ function getScheduleSettings() {
 
 function setScheduleSettings_(user, openTime, closeTime, emailNotif) {
   var props = PropertiesService.getDocumentProperties();
-  if (openTime) props.setProperty("openTime", openTime);
-  if (closeTime) props.setProperty("closeTime", closeTime);
-  if (emailNotif) props.setProperty("emailNotif", emailNotif);
+  if (openTime) {
+    props.setProperty("openTime", openTime);
+  } else {
+    props.deleteProperty("openTime");
+  }
+
+  if (closeTime) {
+    props.setProperty("closeTime", closeTime);
+  } else {
+    props.deleteProperty("closeTime");
+  }
+
+  if (emailNotif) {
+    props.setProperty("emailNotif", emailNotif);
+  } else {
+    props.deleteProperty("emailNotif")
+  }
   
   if (openTime || closeTime) {
     props.setProperty("user", user);
@@ -57,15 +71,15 @@ function submitSchedule(openString, closeString, emailNotif) {
   var props = PropertiesService.getDocumentProperties();
   var currUser = Session.getActiveUser().getEmail();
   var prevUser = props.getProperty("user");
-  if (prevUser && prevUser != currUser) throw "Sorry, but " + prevUser + " has already scheduled an open and/or close action for this form!";
+  if (prevUser && prevUser !== currUser) throw "Sorry, but " + prevUser + " has already scheduled an open and/or close action for this form!";
   
   var lastString = props.getProperty("lastTime");
   var openTime;
   var closeTime;
   var lastTime;
-  if (openString && openString != "") openTime = new Date(openString);
-  if (closeString && closeString != "") closeTime = new Date(closeString);
-  if (lastString && lastString != "") lastTime = new Date(lastString);
+  if (openString && openString !== "") openTime = new Date(openString);
+  if (closeString && closeString !== "") closeTime = new Date(closeString);
+  if (lastString && lastString !== "") lastTime = new Date(lastString);
   
   if (!checkTriMinDiff_(HOUR, openTime, closeTime, lastTime)) {
     throw "Due to limitations by Google, open and close actions cannot occur within one hour of each other.";
