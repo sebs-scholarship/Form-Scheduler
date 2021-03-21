@@ -91,8 +91,18 @@ function submitSchedule(openString, closeString, emailNotif) {
   }
   
   clearTriggers_();
-  if (openTime) setOpenTrigger_(openTime - currDate);
-  if (closeTime) setCloseTrigger_(closeTime - currDate);
+  if (openTime && closeTime) {
+    if (closeTime > openTime) {
+      setOpenTrigger_(openTime - currDate);
+    } else {
+      setCloseTrigger_(closeTime - currDate);
+    }
+  } else if (openTime){
+    setOpenTrigger_(openTime - currDate);
+  }
+  else if (closeTime) {
+    setCloseTrigger_(closeTime - currDate);
+  }
   
   setScheduleSettings_(currUser, openTime, closeTime, emailNotif);
 }
@@ -119,24 +129,36 @@ function checkMinDiff_(min, first, second) {
 /* ======== BEGIN FORM UTILS ======== */
 function openForm() {  
   var props = PropertiesService.getDocumentProperties();
-  props.setProperty("lastTime", props.getProperty("openTime"));
+  var open = props.getProperty("openTime");
+  props.setProperty("lastTime", open);
   props.deleteProperty("openTime");
 
   sendNotification_("Your form is now accepting responses!");
-  
-  if(!props.getProperty("closeTime")) props.deleteProperty("user")
+
+  var close = props.getProperty("closeTime");
+  if (close) {
+    setCloseTrigger_(new Date(close) - new Date(open));
+  } else {
+    props.deleteProperty("user");
+  }
   
   FormApp.getActiveForm().setAcceptingResponses(true);
 }
 
 function closeForm() {
   var props = PropertiesService.getDocumentProperties();
-  props.setProperty("lastTime", props.getProperty("closeTime"));
+  var close = props.getProperty("closeTime");
+  props.setProperty("lastTime", close);
   props.deleteProperty("closeTime");
 
   sendNotification_("Your form is no longer accepting responses!");
-  
-  if(!props.getProperty("openTime")) props.deleteProperty("user")
+
+  var open = props.getProperty("openTime");
+  if (open) {
+    setOpenTrigger_(new Date(open) - new Date(close));
+  } else {
+    props.deleteProperty("user");
+  }
   
   FormApp.getActiveForm().setAcceptingResponses(false);
 }
@@ -159,7 +181,6 @@ function clearTriggers_() {
   for (var i = 0; i < triggers.length; i++) {
     if (triggers[i].getEventType() === ScriptApp.EventType.CLOCK) {
       ScriptApp.deleteTrigger(triggers[i]);
-      console.log("Deleted trigger");
     }
   }
 }
